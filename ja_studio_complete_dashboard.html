@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J&A Studio - Management Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2C3E50;
+            --secondary: #E67E22;
+            --accent: #3498DB;
+            --light-bg: #F8F9FA;
+            --border: #E0E0E0;
+            --success: #27AE60;
+            --warning: #F39C12;
+            --danger: #E74C3C;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--light-bg);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background: var(--primary);
+            color: white;
+            padding: 30px 0;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            padding: 0 30px 30px 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .logo h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .logo p {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            padding: 15px 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            border-left-color: var(--secondary);
+        }
+
+        .nav-item.active {
+            background: rgba(255,255,255,0.15);
+            border-left-color: var(--secondary);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: white;
+            padding: 25px 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            flex: 1;
+        }
+
+        .header-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .header-subtitle {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .sync-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .sync-btn:hover {
+            background: #2980B9;
+            transform: translateY(-2px);
+        }
+
+        .sync-btn.syncing {
+            background: var(--warning);
+            cursor: not-allowed;
+        }
+
+        .sync-btn.connected {
+            background: var(--success);
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 30px 40px;
+            overflow-y: auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Calendar Tab */
+        .calendar-embed {
+            width: 100%;
+            height: 700px;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+
+        /* Dashboard Cards */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--accent);
+        }
+
+        .stat-card.success {
+            border-left-color: var(--success);
+        }
+
+        .stat-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        .stat-card.danger {
+            border-left-color: var(--danger);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-change {
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+
+        .stat-change.positive {
+            color: var(--success);
+        }
+
+        .stat-change.negative {
+            color: var(--danger);
+        }
+
+        /* Staff Management */
+        .staff-grid {
+            display: grid;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .staff-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .staff-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--light-bg);
+        }
+
+        .staff-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .staff-role {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .hours-display {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .hours-item {
+            text-align: center;
+            padding: 15px;
+            background: var(--light-bg);
+            border-radius: 8px;
+        }
+
+        .hours-item label {
+            display: block;
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .hours-item .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .closed-notice {
+            background: var(--sunday);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            color: var(--primary);
+        }
+
+        .closed-notice h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success);
+            transition: width 0.3s;
+        }
+
+        .progress-fill.warning {
+            background: var(--warning);
+        }
+
+        .progress-fill.danger {
+            background: var(--danger);
+        }
+
+        .leave-records {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .leave-records h3 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .leave-item {
+            padding: 15px;
+            border-left: 4px solid var(--accent);
+            background: var(--light-bg);
+            margin-bottom: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .leave-item.approved {
+            border-left-color: var(--success);
+            background: #E8F5E9;
+        }
+
+        .leave-item.pending {
+            border-left-color: var(--warning);
+            background: #FFF8E1;
+        }
+
+        .leave-info {
+            flex: 1;
+        }
+
+        .leave-staff {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .leave-dates {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .leave-status {
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .leave-status.approved {
+            background: var(--success);
+            color: white;
+        }
+
+        .leave-status.confirmed {
+            background: var(--success);
+            color: white;
+        }
+
+        .leave-status.pending {
+            background: var(--warning);
+            color: white;
+        }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-top: 20px;
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table tr:hover {
+            background: var(--light-bg);
+        }
+
+        .setup-notice {
+            background: #FFF9C4;
+            border-left: 4px solid #FBC02D;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .setup-notice h3 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .setup-notice h4 {
+            color: var(--primary);
+            margin: 15px 0 10px 0;
+        }
+
+        .setup-notice ol, .setup-notice ul {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+
+        .setup-notice code {
+            background: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
+
+        .error-message {
+            background: #FFEBEE;
+            border-left: 4px solid #EF5350;
+            color: #C62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .success-message {
+            background: #E8F5E9;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>J&A Studio</h1>
+                <p>Management Dashboard</p>
+            </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li class="nav-item active" onclick="showTab('dashboard')">
+                        <span class="nav-icon">📊</span>
+                        <span>Dashboard</span>
+                    </li>
+                    <li class="nav-item" onclick="showTab('calendar')">
+                        <span class="nav-icon">📅</span>
+                        <span>Calendar</span>
+                    </li>
+                    <li class="nav-item" onclick="showTab('staff-hours')">
+                        <span class="nav-icon">⏰</span>
+                        <span>Staff Hours</span>
+                    </li>
+                    <li class="nav-item" onclick="showTab('annual-leave')">
+                        <span class="nav-icon">🏖️</span>
+                        <span>Annual Leave</span>
+                    </li>
+                    <li class="nav-item" onclick="showTab('bookings')">
+                        <span class="nav-icon">📸</span>
+                        <span>Bookings</span>
+                    </li>
+                    <li class="nav-item" onclick="showTab('setup')">
+                        <span class="nav-icon">⚙️</span>
+                        <span>Setup Guide</span>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <div class="header-left">
+                    <h1 class="header-title" id="pageTitle">Dashboard</h1>
+                    <p class="header-subtitle" id="pageSubtitle">Overview of studio operations</p>
+                </div>
+                <button class="sync-btn" id="syncButton" onclick="connectGoogleCalendar()">
+                    <span id="syncIcon">🔗</span>
+                    <span id="syncText">Connect Calendar</span>
+                </button>
+            </header>
+
+            <div class="content-area">
+                <!-- Dashboard Tab -->
+                <div id="dashboard" class="tab-content active">
+                    <div class="dashboard-grid">
+                        <div class="stat-card success">
+                            <div class="stat-label">This Week's Bookings</div>
+                            <div class="stat-value" id="dashBookingsCount">--</div>
+                            <div class="stat-change" id="dashBookingsChange">Connect calendar to sync</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Staff Hours (Week)</div>
+                            <div class="stat-value" id="dashTotalHours">--</div>
+                            <div class="stat-change" id="dashHoursBreakdown">Connect calendar to sync</div>
+                        </div>
+                        <div class="stat-card danger">
+                            <div class="stat-label">Annual Leave (Upcoming)</div>
+                            <div class="stat-value" id="dashLeaveCount">--</div>
+                            <div class="stat-change" id="dashLeaveDetails">Connect calendar to sync</div>
+                        </div>
+                    </div>
+
+                    <div class="leave-records">
+                        <h3>Recent Activity</h3>
+                        <div id="dashboardActivity">
+                            <div class="loading">Connect your Google Calendar to see recent activity</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar Tab -->
+                <div id="calendar" class="tab-content">
+                    <iframe 
+                        src="https://calendar.google.com/calendar/embed?src=info%40jandastudiouk.co.uk&ctz=Europe%2FLondon"
+                        class="calendar-embed"
+                    ></iframe>
+                </div>
+
+                <!-- Staff Hours Tab -->
+                <div id="staff-hours" class="tab-content">
+                    <div class="staff-grid" id="staffCardsContainer">
+                        <!-- Staff cards will be generated dynamically -->
+                    </div>
+
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Week</th>
+                                    <th id="hoursTableHeaders"><!-- Dynamic headers --></th>
+                                </tr>
+                            </thead>
+                            <tbody id="hoursTable">
+                                <tr>
+                                    <td colspan="10" class="loading">Connect Google Calendar to see hours breakdown</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Annual Leave Tab -->
+                <div id="annual-leave" class="tab-content">
+                    <div class="dashboard-grid" id="leaveBalanceContainer">
+                        <!-- Leave balance cards will be generated dynamically -->
+                    </div>
+
+                    <div class="leave-records">
+                        <h3>Leave Schedule</h3>
+                        <div id="leaveList">
+                            <div class="loading">Connect Google Calendar to see leave schedule</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bookings Tab -->
+                <div id="bookings" class="tab-content">
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Client</th>
+                                    <th>Type</th>
+                                    <th>Photographer</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookingsTable">
+                                <tr>
+                                    <td colspan="5" class="loading">Connect Google Calendar to see bookings</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Setup Tab -->
+                <div id="setup" class="tab-content">
+                    <div class="setup-notice">
+                        <h3>📋 How to Auto-Sync Your Google Calendar</h3>
+                        <p style="margin: 15px 0;">This dashboard automatically extracts staff hours, bookings, and leave from your Google Calendar. Here's how it works:</p>
+                        
+                        <h4>🔑 Event Naming Conventions</h4>
+                        <p>Use staff names in your calendar event titles to automatically categorize them:</p>
+                        
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <strong>Your Staff List:</strong><br>
+                            • <strong>Fulltime:</strong> Amus, Jimmy (work Mon-Sat, only enter days OFF)<br>
+                            • <strong>Parttime:</strong> Mi, Toby, Emily (enter all working shifts)<br>
+                            <em style="display: block; margin-top: 10px; font-size: 0.9rem;">
+                                💡 To add/edit staff: Edit the staffList in the code (around line 1058)
+                            </em>
+                        </div>
+
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <strong>Fulltime Staff (Amus & Jimmy) - Days OFF:</strong><br>
+                            • <code>Amus - Off</code> or <code>Amus Holiday</code><br>
+                            • <code>Jimmy - Leave</code> or <code>Jimmy Vacation</code><br>
+                            <em>System assumes they work Mon-Sat and calculates hours minus days off</em>
+                        </div>
+
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <strong>Parttime Staff (Mi, Toby, Emily) - Working Shifts:</strong><br>
+                            • <code>Mi - Working 12-3pm</code><br>
+                            • <code>Toby Shift - Studio</code><br>
+                            • <code>Emily - Film Lab 2-6pm</code><br>
+                            <em>Hours calculated from calendar event duration</em>
+                        </div>
+
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <strong>Bookings (Photoshoots):</strong><br>
+                            • <code>Photoshoot - Sarah Johnson Graduation</code><br>
+                            • <code>Wedding - Emma & David</code><br>
+                            • <code>Family Portrait - The Smiths</code><br>
+                            <em>Keywords: photoshoot, wedding, portrait, graduation, couple, family, maternity</em>
+                        </div>
+
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <strong>Film Lab Processing:</strong><br>
+                            • <code>Film Processing - John Davies 3 rolls</code><br>
+                            • <code>Film Lab - VIP Member 120 B&W</code><br>
+                            • <code>Develop - Lisa Chen ECN-2</code><br>
+                            <em>Keywords: film, processing, develop, lab, scan</em>
+                        </div>
+
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <strong>Annual Leave (Fulltime staff only):</strong><br>
+                            • <code>Amus - Holiday</code> or <code>Amus Leave</code><br>
+                            • <code>Jimmy - Annual Leave</code> or <code>Jimmy Off</code><br>
+                            • <code>Amus Vacation - Spain</code><br>
+                            <em>Each fulltime staff has 28 days annual leave. Parttime staff don't have leave tracking.</em>
+                        </div>
+
+                        <h4>⚙️ API Setup (Required)</h4>
+                        <ol style="margin: 10px 0 10px 25px; line-height: 2;">
+                            <li>Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a></li>
+                            <li>Create a new project: "J&A Studio Dashboard"</li>
+                            <li>Enable "Google Calendar API"</li>
+                            <li>Create credentials:
+                                <ul style="margin-left: 20px;">
+                                    <li>API Key</li>
+                                    <li>OAuth 2.0 Client ID (Web application)</li>
+                                </ul>
+                            </li>
+                            <li>Add to authorized JavaScript origins: <code>http://localhost</code></li>
+                            <li>Copy your Client ID and API Key</li>
+                            <li>Edit this HTML file and replace:
+                                <ul style="margin-left: 20px;">
+                                    <li>Line ~1050: <code>CLIENT_ID</code></li>
+                                    <li>Line ~1051: <code>API_KEY</code></li>
+                                </ul>
+                            </li>
+                            <li>Save and reload this page</li>
+                            <li>Click "Connect Calendar" button</li>
+                        </ol>
+
+                        <h4>✅ What Gets Auto-Calculated</h4>
+                        <ul style="margin: 10px 0 10px 25px; line-height: 1.8;">
+                            <li>✓ Staff working hours (week/month/year)</li>
+                            <li>✓ Annual leave days taken and remaining</li>
+                            <li>✓ Upcoming photoshoot bookings</li>
+                            <li>✓ Film lab processing queue</li>
+                            <li>✓ Weekly hours breakdown per staff</li>
+                            <li>✓ Progress toward weekly targets</li>
+                        </ul>
+
+                        <div style="background: #E8F5E9; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+                            <strong>💡 Pro Tip:</strong> Use consistent naming in your Google Calendar and this dashboard will automatically organize everything for you!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Google Calendar API Configuration
+        const CLIENT_ID = '642805657518-lq2sc34vfb0tlirifunqsob51qdpet8j.apps.googleusercontent.com';
+        const API_KEY = 'AIzaSyDGibms_ijneOj7z8mGZlKJgT-H0JVLeOI';
+        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
+        const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly';
+
+        let tokenClient;
+        let gapiInited = false;
+        let gisInited = false;
+
+        // Staff Configuration - EDIT THIS LIST
+        const staffList = [
+            { name: 'Amus', type: 'fulltime', annualLeave: 28 },
+            { name: 'Jimmy', type: 'fulltime', annualLeave: 28 },
+            { name: 'Mi', type: 'parttime', annualLeave: 0 },
+            { name: 'Toby', type: 'parttime', annualLeave: 0 },
+            { name: 'Emily', type: 'parttime', annualLeave: 0 }
+        ];
+
+        // Data storage
+        let dashboardData = {
+            staffHours: {},
+            leave: {},
+            bookings: [],
+            filmLab: [],
+            allEvents: []
+        };
+
+        // Initialize data structure for each staff member
+        function initializeStaffData() {
+            staffList.forEach(staff => {
+                const key = staff.name.toLowerCase();
+                dashboardData.staffHours[key] = { week: 0, month: 0, year: 0 };
+                dashboardData.leave[key] = { 
+                    taken: 0, 
+                    remaining: staff.annualLeave, 
+                    total: staff.annualLeave,
+                    events: [] 
+                };
+            });
+        }
+
+        initializeStaffData();
+
+        // Initialize Google API
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                apiKey: API_KEY,
+                discoveryDocs: [DISCOVERY_DOC],
+            });
+            gapiInited = true;
+        }
+
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: '',
+            });
+            gisInited = true;
+        }
+
+        function connectGoogleCalendar() {
+            console.log('Connect button clicked');
+            console.log('CLIENT_ID:', CLIENT_ID);
+            console.log('API_KEY:', API_KEY);
+            console.log('gapiInited:', gapiInited);
+            console.log('gisInited:', gisInited);
+            
+            if (CLIENT_ID.includes('YOUR_CLIENT_ID') || API_KEY.includes('YOUR_API_KEY')) {
+                alert('⚠️ API credentials not configured.\n\nPlease check that the file downloaded correctly.\n\nClient ID should start with: 642805657518-\nAPI Key should start with: AIzaSyDG');
+                showTab('setup');
+                return;
+            }
+            
+            if (!gapiInited || !gisInited) {
+                alert('⚠️ Google Calendar API libraries are still loading.\n\nPlease wait a few seconds and try again.\n\nIf this persists, check your internet connection.');
+                return;
+            }
+
+            const btn = document.getElementById('syncButton');
+            const icon = document.getElementById('syncIcon');
+            const text = document.getElementById('syncText');
+
+            btn.classList.add('syncing');
+            icon.textContent = '⏳';
+            text.textContent = 'Syncing...';
+
+            tokenClient.callback = async (resp) => {
+                if (resp.error !== undefined) {
+                    console.error('Auth error:', resp);
+                    btn.classList.remove('syncing');
+                    icon.textContent = '❌';
+                    text.textContent = 'Connection Failed';
+                    alert('Connection failed: ' + resp.error);
+                    return;
+                }
+                
+                btn.classList.remove('syncing');
+                btn.classList.add('connected');
+                icon.textContent = '✓';
+                text.textContent = 'Synced';
+                
+                await loadAllData();
+            };
+
+            if (gapi.client.getToken() === null) {
+                tokenClient.requestAccessToken({prompt: 'consent'});
+            } else {
+                tokenClient.requestAccessToken({prompt: ''});
+            }
+        }
+
+        async function loadAllData() {
+            try {
+                const now = new Date();
+                const startOfYear = new Date(now.getFullYear(), 0, 1);
+                const endOfYear = new Date(now.getFullYear(), 11, 31);
+
+                // Fetch all events for the year
+                const events = await fetchEvents(startOfYear, endOfYear);
+                dashboardData.allEvents = events;
+
+                // Process all data
+                calculateStaffHours(events);
+                calculateAnnualLeave(events);
+                extractBookings(events);
+
+                // Update all displays
+                updateDashboard();
+                updateStaffHours();
+                updateAnnualLeave();
+                updateBookings();
+
+                showSuccessMessage();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Failed to load calendar data. Please try again.');
+            }
+        }
+
+        async function fetchEvents(startDate, endDate) {
+            const response = await gapi.client.calendar.events.list({
+                'calendarId': 'primary',
+                'timeMin': startDate.toISOString(),
+                'timeMax': endDate.toISOString(),
+                'showDeleted': false,
+                'singleEvents': true,
+                'orderBy': 'startTime',
+                'maxResults': 2500
+            });
+
+            return response.result.items || [];
+        }
+
+        function calculateStaffHours(events) {
+            const now = new Date();
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay() + 1);
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+            staffList.forEach(staff => {
+                const key = staff.name.toLowerCase();
+                
+                if (staff.type === 'fulltime') {
+                    // For fulltime: calculate expected hours minus days off
+                    dashboardData.staffHours[key].week = calculateFulltimeHours(events, staff.name, startOfWeek, now);
+                    dashboardData.staffHours[key].month = calculateFulltimeHours(events, staff.name, startOfMonth, now);
+                    dashboardData.staffHours[key].year = calculateFulltimeHours(events, staff.name, startOfYear, now);
+                } else {
+                    // For parttime: calculate from calendar events
+                    dashboardData.staffHours[key].week = calculateParttimeHours(events, staff.name, startOfWeek, now);
+                    dashboardData.staffHours[key].month = calculateParttimeHours(events, staff.name, startOfMonth, now);
+                    dashboardData.staffHours[key].year = calculateParttimeHours(events, staff.name, startOfYear, now);
+                }
+            });
+        }
+
+        function calculateFulltimeHours(events, staffName, startDate, endDate) {
+            // Calculate total working days (Mon-Sat) in period
+            let totalWorkingDays = 0;
+            let currentDate = new Date(startDate);
+            
+            while (currentDate <= endDate) {
+                const dayOfWeek = currentDate.getDay();
+                // Count Mon-Sat (1-6), exclude Sunday (0)
+                if (dayOfWeek >= 1 && dayOfWeek <= 6) {
+                    totalWorkingDays++;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            // Subtract days off from calendar
+            let daysOff = 0;
+            events.forEach(event => {
+                const title = (event.summary || '').toLowerCase();
+                if (!title.includes(staffName.toLowerCase())) return;
+                
+                // Check if it's a day off event
+                if (title.includes('off') || title.includes('leave') || 
+                    title.includes('holiday') || title.includes('vacation')) {
+                    
+                    const eventStart = new Date(event.start.dateTime || event.start.date);
+                    if (eventStart < startDate || eventStart > endDate) return;
+
+                    // Calculate days in this event
+                    if (event.end.date) {
+                        const start = new Date(event.start.date);
+                        const end = new Date(event.end.date);
+                        const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                        daysOff += days;
+                    } else {
+                        daysOff += 1;
+                    }
+                }
+            });
+
+            // Calculate hours: (working days - days off) * 6 hours per day
+            const workingDays = totalWorkingDays - daysOff;
+            const totalHours = workingDays * 6; // 6 hours per day (12pm-6pm)
+            
+            return Math.max(0, Math.round(totalHours * 10) / 10);
+        }
+
+        function calculateParttimeHours(events, staffName, startDate, endDate) {
+            let totalHours = 0;
+
+            events.forEach(event => {
+                const title = (event.summary || '').toLowerCase();
+                
+                // Check if event is for this staff
+                if (!title.includes(staffName.toLowerCase())) return;
+                
+                // Skip leave/holiday events
+                if (title.includes('leave') || title.includes('holiday') || 
+                    title.includes('vacation') || title.includes('off')) return;
+
+                const eventStart = new Date(event.start.dateTime || event.start.date);
+                if (eventStart < startDate || eventStart > endDate) return;
+
+                // Calculate hours from event duration
+                if (event.start.dateTime && event.end.dateTime) {
+                    const start = new Date(event.start.dateTime);
+                    const end = new Date(event.end.dateTime);
+                    const hours = (end - start) / (1000 * 60 * 60);
+                    totalHours += hours;
+                } else {
+                    // All-day event marked as working
+                    if (title.includes('working') || title.includes('shift')) {
+                        totalHours += 6; // Standard workday
+                    }
+                }
+            });
+
+            return Math.round(totalHours * 10) / 10;
+        }
+
+        function calculateAnnualLeave(events) {
+            const now = new Date();
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+            staffList.forEach(staff => {
+                const key = staff.name.toLowerCase();
+                let daysTaken = 0;
+                let leaveEvents = [];
+
+                // Skip if no annual leave entitlement (part-time staff)
+                if (staff.annualLeave === 0) {
+                    dashboardData.leave[key].taken = 0;
+                    dashboardData.leave[key].remaining = 0;
+                    dashboardData.leave[key].events = [];
+                    return;
+                }
+
+                events.forEach(event => {
+                    const title = (event.summary || '').toLowerCase();
+                    
+                    if (!title.includes(staff.name.toLowerCase())) return;
+                    if (!(title.includes('leave') || title.includes('holiday') || 
+                          title.includes('vacation') || title.includes('off'))) return;
+
+                    const eventStart = new Date(event.start.dateTime || event.start.date);
+                    if (eventStart < startOfYear) return;
+
+                    // Calculate days
+                    let days = 1;
+                    if (event.end.date) {
+                        const start = new Date(event.start.date);
+                        const end = new Date(event.end.date);
+                        days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                    } else if (event.start.dateTime && event.end.dateTime) {
+                        const start = new Date(event.start.dateTime);
+                        const end = new Date(event.end.dateTime);
+                        const hours = (end - start) / (1000 * 60 * 60);
+                        days = Math.ceil(hours / 6); // Convert hours to days
+                    }
+
+                    daysTaken += days;
+                    leaveEvents.push({
+                        title: event.summary,
+                        start: eventStart,
+                        days: days,
+                        isPast: eventStart < now
+                    });
+                });
+
+                dashboardData.leave[key].taken = daysTaken;
+                dashboardData.leave[key].remaining = staff.annualLeave - daysTaken;
+                dashboardData.leave[key].events = leaveEvents;
+            });
+        }
+
+        function extractBookings(events) {
+            const bookingKeywords = ['photoshoot', 'wedding', 'portrait', 'graduation', 
+                                   'couple', 'family', 'maternity', 'session', 'shoot'];
+            
+            dashboardData.bookings = events.filter(event => {
+                const title = (event.summary || '').toLowerCase();
+                return bookingKeywords.some(keyword => title.includes(keyword));
+            }).map(event => ({
+                date: new Date(event.start.dateTime || event.start.date),
+                time: event.start.dateTime ? new Date(event.start.dateTime).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                }) : 'All day',
+                client: event.summary,
+                description: event.description || '',
+                photographer: event.summary.toLowerCase().includes('jimmy') ? 'Jimmy' : 
+                             event.summary.toLowerCase().includes('andy') ? 'Andy' : 'TBD'
+            }));
+        }
+
+        function updateDashboard() {
+            const now = new Date();
+            const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+            const thisWeekBookings = dashboardData.bookings.filter(b => b.date >= now && b.date <= weekFromNow);
+            
+            // Calculate total leave from all staff
+            let upcomingLeave = 0;
+            staffList.forEach(staff => {
+                const key = staff.name.toLowerCase();
+                upcomingLeave += dashboardData.leave[key].events.filter(l => !l.isPast).length;
+            });
+
+            // Calculate total hours for all staff this week
+            let totalWeekHours = 0;
+            let hoursBreakdown = [];
+            staffList.forEach(staff => {
+                const key = staff.name.toLowerCase();
+                const hours = dashboardData.staffHours[key].week;
+                totalWeekHours += hours;
+                if (hours > 0) {
+                    hoursBreakdown.push(`${staff.name}: ${hours}h`);
+                }
+            });
+
+            document.getElementById('dashBookingsCount').textContent = thisWeekBookings.length;
+            document.getElementById('dashBookingsChange').textContent = `${thisWeekBookings.length} this week`;
+            
+            document.getElementById('dashTotalHours').textContent = totalWeekHours + 'h';
+            document.getElementById('dashHoursBreakdown').textContent = 
+                hoursBreakdown.length > 0 ? hoursBreakdown.join(' | ') : 'No hours recorded';
+            
+            document.getElementById('dashLeaveCount').textContent = upcomingLeave;
+            document.getElementById('dashLeaveDetails').textContent = `${upcomingLeave} upcoming leave days`;
+
+            // Recent activity
+            const activity = document.getElementById('dashboardActivity');
+            const recentEvents = thisWeekBookings.map(b => ({type: 'booking', ...b}))
+                .sort((a, b) => a.date - b.date).slice(0, 5);
+
+            if (recentEvents.length === 0) {
+                activity.innerHTML = '<div class="loading">No upcoming events this week</div>';
+            } else {
+                activity.innerHTML = recentEvents.map(e => `
+                    <div class="leave-item approved">
+                        <div class="leave-info">
+                            <div class="leave-staff">${e.client}</div>
+                            <div class="leave-dates">${e.date.toLocaleDateString('en-GB')} at ${e.time}</div>
+                        </div>
+                        <span class="leave-status confirmed">Booking</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function updateStaffHours() {
+            // Generate staff cards dynamically
+            const container = document.getElementById('staffCardsContainer');
+            container.innerHTML = staffList.map(staff => {
+                const key = staff.name.toLowerCase();
+                const hours = dashboardData.staffHours[key];
+                const typeLabel = staff.type === 'fulltime' ? 'Full-time Staff' : 'Part-time Staff';
+                
+                return `
+                    <div class="staff-card">
+                        <div class="staff-header">
+                            <div>
+                                <div class="staff-name">${staff.name}</div>
+                                <div class="staff-role">${typeLabel}</div>
+                            </div>
+                        </div>
+                        <div class="hours-display">
+                            <div class="hours-item">
+                                <label>This Week</label>
+                                <div class="value">${hours.week}h</div>
+                            </div>
+                            <div class="hours-item">
+                                <label>This Month</label>
+                                <div class="value">${hours.month}h</div>
+                            </div>
+                            <div class="hours-item">
+                                <label>This Year</label>
+                                <div class="value">${hours.year}h</div>
+                            </div>
+                        </div>
+                        ${staff.type === 'fulltime' ? `
+                        <div style="margin-top: 15px;">
+                            <label style="font-size: 0.9rem; color: #666;">Expected: Mon-Sat working days</label>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            // Update hours table
+            const tableHeaders = document.getElementById('hoursTableHeaders');
+            tableHeaders.innerHTML = staffList.map(s => `<th>${s.name}</th>`).join('') + '<th>Total</th>';
+
+            const table = document.getElementById('hoursTable');
+            const periods = [
+                { label: 'This Week', key: 'week' },
+                { label: 'This Month', key: 'month' },
+                { label: 'This Year', key: 'year' }
+            ];
+
+            table.innerHTML = periods.map(period => {
+                let total = 0;
+                const staffCells = staffList.map(staff => {
+                    const key = staff.name.toLowerCase();
+                    const hours = dashboardData.staffHours[key][period.key];
+                    total += hours;
+                    return `<td>${hours} hours</td>`;
+                }).join('');
+
+                return `
+                    <tr>
+                        <td>${period.label}</td>
+                        ${staffCells}
+                        <td><strong>${total} hours</strong></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateAnnualLeave() {
+            // Generate leave balance cards for fulltime staff only
+            const container = document.getElementById('leaveBalanceContainer');
+            const fulltimeStaff = staffList.filter(s => s.type === 'fulltime');
+            
+            container.innerHTML = fulltimeStaff.map(staff => {
+                const key = staff.name.toLowerCase();
+                const leave = dashboardData.leave[key];
+                const percentRemaining = (leave.remaining / leave.total) * 100;
+
+                return `
+                    <div class="stat-card">
+                        <div class="stat-label">${staff.name}'s Leave Balance</div>
+                        <div class="stat-value">${leave.remaining}</div>
+                        <div class="stat-change">${leave.taken} days used (of ${leave.total})</div>
+                        <div class="progress-bar" style="margin-top: 10px;">
+                            <div class="progress-fill" style="width: ${percentRemaining}%;"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Leave list - all staff
+            const allLeave = [];
+            staffList.forEach(staff => {
+                const key = staff.name.toLowerCase();
+                dashboardData.leave[key].events.forEach(event => {
+                    allLeave.push({...event, staff: staff.name});
+                });
+            });
+            
+            allLeave.sort((a, b) => a.start - b.start);
+
+            const leaveList = document.getElementById('leaveList');
+            if (allLeave.length === 0) {
+                leaveList.innerHTML = '<div class="loading">No leave recorded in calendar</div>';
+            } else {
+                leaveList.innerHTML = allLeave.map(leave => `
+                    <div class="leave-item ${leave.isPast ? 'approved' : 'pending'}">
+                        <div class="leave-info">
+                            <div class="leave-staff">${leave.staff}</div>
+                            <div class="leave-dates">${leave.start.toLocaleDateString('en-GB')} (${leave.days} day${leave.days > 1 ? 's' : ''})</div>
+                        </div>
+                        <span class="leave-status ${leave.isPast ? 'approved' : 'pending'}">
+                            ${leave.isPast ? 'Completed' : 'Upcoming'}
+                        </span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function updateBookings() {
+            const table = document.getElementById('bookingsTable');
+            const futureBookings = dashboardData.bookings
+                .filter(b => b.date >= new Date())
+                .sort((a, b) => a.date - b.date);
+
+            if (futureBookings.length === 0) {
+                table.innerHTML = '<tr><td colspan="5" class="loading">No upcoming bookings in calendar</td></tr>';
+            } else {
+                table.innerHTML = futureBookings.map(booking => `
+                    <tr>
+                        <td>${booking.date.toLocaleDateString('en-GB')}</td>
+                        <td>${booking.time}</td>
+                        <td>${booking.client}</td>
+                        <td>${booking.description || 'Photoshoot'}</td>
+                        <td>${booking.photographer}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function showSuccessMessage() {
+            const message = `
+                <div class="success-message">
+                    <strong>✓ Calendar synced successfully!</strong><br>
+                    All data has been automatically extracted and calculated from your Google Calendar.
+                </div>
+            `;
+            
+            document.getElementById('dashboardActivity').insertAdjacentHTML('afterbegin', message);
+        }
+
+        function showError(msg) {
+            alert('Error: ' + msg);
+        }
+
+        // Password protection
+        const ADMIN_PASSWORD = 'ja2026'; // Change this to your desired password
+        let isAuthenticated = false;
+
+        function checkPassword(tabName) {
+            // Calendar is always accessible
+            if (tabName === 'calendar') {
+                return true;
+            }
+            
+            // If already authenticated, allow access
+            if (isAuthenticated) {
+                return true;
+            }
+            
+            // Ask for password
+            const password = prompt('🔒 This section is password protected.\n\nPlease enter the admin password:');
+            
+            if (password === ADMIN_PASSWORD) {
+                isAuthenticated = true;
+                return true;
+            } else if (password !== null) {
+                alert('❌ Incorrect password. Access denied.');
+            }
+            
+            return false;
+        }
+
+        // Tab switching
+        function showTab(tabName) {
+            // Check password for protected tabs
+            if (!checkPassword(tabName)) {
+                return;
+            }
+
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            document.getElementById(tabName).classList.add('active');
+            event.target.closest('.nav-item').classList.add('active');
+
+            const titles = {
+                'dashboard': ['Dashboard', 'Overview of studio operations'],
+                'calendar': ['Calendar', 'Google Calendar - Real-time sync'],
+                'staff-hours': ['Staff Hours', 'Auto-calculated from calendar events'],
+                'annual-leave': ['Annual Leave', 'Auto-calculated leave balance'],
+                'bookings': ['Photoshoot Bookings', 'Auto-extracted from calendar'],
+                'setup': ['Setup Guide', 'Configure automatic sync']
+            };
+
+            if (titles[tabName]) {
+                document.getElementById('pageTitle').textContent = titles[tabName][0];
+                document.getElementById('pageSubtitle').textContent = titles[tabName][1];
+            }
+        }
+    </script>
+
+    <!-- Load Google API libraries -->
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+</body>
+</html>
