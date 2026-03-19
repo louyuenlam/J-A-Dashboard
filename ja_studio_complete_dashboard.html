@@ -569,7 +569,7 @@
                             <div class="stat-change" id="dashBookingsChange">Connect calendar to sync</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-label">Staff Hours (Week)</div>
+                            <div class="stat-label">Staff Hours (Month to Date)</div>
                             <div class="stat-value" id="dashTotalHours">--</div>
                             <div class="stat-change" id="dashHoursBreakdown">Connect calendar to sync</div>
                         </div>
@@ -669,7 +669,7 @@
                             • <strong>Fulltime:</strong> Amus, Jimmy (work Mon-Sat, only enter days OFF)<br>
                             • <strong>Parttime:</strong> Mi, Toby, Emily (enter all working shifts)<br>
                             <em style="display: block; margin-top: 10px; font-size: 0.9rem;">
-                                💡 To add/edit staff: Edit the staffList in the code (around line 1058)
+                                💡 To add/edit staff: Edit the staffList in the code (around line 770)
                             </em>
                         </div>
 
@@ -709,7 +709,7 @@
                             • <code>Amus - Holiday</code> or <code>Amus Leave</code><br>
                             • <code>Jimmy - Annual Leave</code> or <code>Jimmy Off</code><br>
                             • <code>Amus Vacation - Spain</code><br>
-                            <em>Each fulltime staff has 28 days annual leave. Parttime staff don't have leave tracking.</em>
+                            <em>Each fulltime staff has 33 days annual leave. Parttime staff don't have leave tracking.</em>
                         </div>
 
                         <h4>⚙️ API Setup (Required)</h4>
@@ -767,8 +767,8 @@
 
         // Staff Configuration - EDIT THIS LIST
         const staffList = [
-            { name: 'Amus', type: 'fulltime', annualLeave: 28 },
-            { name: 'Jimmy', type: 'fulltime', annualLeave: 28 },
+            { name: 'Amus', type: 'fulltime', annualLeave: 33 },
+            { name: 'Jimmy', type: 'fulltime', annualLeave: 33 },
             { name: 'Mi', type: 'parttime', annualLeave: 0 },
             { name: 'Toby', type: 'parttime', annualLeave: 0 },
             { name: 'Emily', type: 'parttime', annualLeave: 0 }
@@ -787,7 +787,7 @@
         function initializeStaffData() {
             staffList.forEach(staff => {
                 const key = staff.name.toLowerCase();
-                dashboardData.staffHours[key] = { week: 0, month: 0, year: 0 };
+                dashboardData.staffHours[key] = { monthToDate: 0, monthTotal: 0, yearTotal: 0 };
                 dashboardData.leave[key] = { 
                     taken: 0, 
                     remaining: staff.annualLeave, 
@@ -916,26 +916,24 @@
 
         function calculateStaffHours(events) {
             const now = new Date();
-            const startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - now.getDay() + 1);
-            startOfWeek.setHours(0, 0, 0, 0);
-
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of current month
             const startOfYear = new Date(now.getFullYear(), 0, 1);
+            const endOfYear = new Date(now.getFullYear(), 11, 31); // Dec 31
 
             staffList.forEach(staff => {
                 const key = staff.name.toLowerCase();
                 
                 if (staff.type === 'fulltime') {
                     // For fulltime: calculate expected hours minus days off
-                    dashboardData.staffHours[key].week = calculateFulltimeHours(events, staff.name, startOfWeek, now);
-                    dashboardData.staffHours[key].month = calculateFulltimeHours(events, staff.name, startOfMonth, now);
-                    dashboardData.staffHours[key].year = calculateFulltimeHours(events, staff.name, startOfYear, now);
+                    dashboardData.staffHours[key].monthToDate = calculateFulltimeHours(events, staff.name, startOfMonth, now);
+                    dashboardData.staffHours[key].monthTotal = calculateFulltimeHours(events, staff.name, startOfMonth, endOfMonth);
+                    dashboardData.staffHours[key].yearTotal = calculateFulltimeHours(events, staff.name, startOfYear, endOfYear);
                 } else {
                     // For parttime: calculate from calendar events
-                    dashboardData.staffHours[key].week = calculateParttimeHours(events, staff.name, startOfWeek, now);
-                    dashboardData.staffHours[key].month = calculateParttimeHours(events, staff.name, startOfMonth, now);
-                    dashboardData.staffHours[key].year = calculateParttimeHours(events, staff.name, startOfYear, now);
+                    dashboardData.staffHours[key].monthToDate = calculateParttimeHours(events, staff.name, startOfMonth, now);
+                    dashboardData.staffHours[key].monthTotal = calculateParttimeHours(events, staff.name, startOfMonth, endOfMonth);
+                    dashboardData.staffHours[key].yearTotal = calculateParttimeHours(events, staff.name, startOfYear, endOfYear);
                 }
             });
         }
@@ -1101,20 +1099,20 @@
 
             const thisWeekBookings = dashboardData.bookings.filter(b => b.date >= now && b.date <= weekFromNow);
             
-            // Calculate total leave from all staff
+            // Calculate total leave from fulltime staff only
             let upcomingLeave = 0;
-            staffList.forEach(staff => {
+            staffList.filter(s => s.type === 'fulltime').forEach(staff => {
                 const key = staff.name.toLowerCase();
                 upcomingLeave += dashboardData.leave[key].events.filter(l => !l.isPast).length;
             });
 
-            // Calculate total hours for all staff this week
-            let totalWeekHours = 0;
+            // Calculate total hours for parttime staff only
+            let totalMonthHours = 0;
             let hoursBreakdown = [];
-            staffList.forEach(staff => {
+            staffList.filter(s => s.type === 'parttime').forEach(staff => {
                 const key = staff.name.toLowerCase();
-                const hours = dashboardData.staffHours[key].week;
-                totalWeekHours += hours;
+                const hours = dashboardData.staffHours[key].monthToDate;
+                totalMonthHours += hours;
                 if (hours > 0) {
                     hoursBreakdown.push(`${staff.name}: ${hours}h`);
                 }
@@ -1123,7 +1121,7 @@
             document.getElementById('dashBookingsCount').textContent = thisWeekBookings.length;
             document.getElementById('dashBookingsChange').textContent = `${thisWeekBookings.length} this week`;
             
-            document.getElementById('dashTotalHours').textContent = totalWeekHours + 'h';
+            document.getElementById('dashTotalHours').textContent = totalMonthHours + 'h';
             document.getElementById('dashHoursBreakdown').textContent = 
                 hoursBreakdown.length > 0 ? hoursBreakdown.join(' | ') : 'No hours recorded';
             
@@ -1151,12 +1149,15 @@
         }
 
         function updateStaffHours() {
+            // Only show parttime staff in Staff Hours tab
+            const parttimeStaff = staffList.filter(s => s.type === 'parttime');
+            
             // Generate staff cards dynamically
             const container = document.getElementById('staffCardsContainer');
-            container.innerHTML = staffList.map(staff => {
+            container.innerHTML = parttimeStaff.map(staff => {
                 const key = staff.name.toLowerCase();
                 const hours = dashboardData.staffHours[key];
-                const typeLabel = staff.type === 'fulltime' ? 'Full-time Staff' : 'Part-time Staff';
+                const typeLabel = 'Part-time Staff';
                 
                 return `
                     <div class="staff-card">
@@ -1168,41 +1169,36 @@
                         </div>
                         <div class="hours-display">
                             <div class="hours-item">
-                                <label>This Week</label>
-                                <div class="value">${hours.week}h</div>
+                                <label>Month (To Date)</label>
+                                <div class="value">${hours.monthToDate}h</div>
                             </div>
                             <div class="hours-item">
-                                <label>This Month</label>
-                                <div class="value">${hours.month}h</div>
+                                <label>Month (Total)</label>
+                                <div class="value">${hours.monthTotal}h</div>
                             </div>
                             <div class="hours-item">
-                                <label>This Year</label>
-                                <div class="value">${hours.year}h</div>
+                                <label>Year (Total)</label>
+                                <div class="value">${hours.yearTotal}h</div>
                             </div>
                         </div>
-                        ${staff.type === 'fulltime' ? `
-                        <div style="margin-top: 15px;">
-                            <label style="font-size: 0.9rem; color: #666;">Expected: Mon-Sat working days</label>
-                        </div>
-                        ` : ''}
                     </div>
                 `;
             }).join('');
 
             // Update hours table
             const tableHeaders = document.getElementById('hoursTableHeaders');
-            tableHeaders.innerHTML = staffList.map(s => `<th>${s.name}</th>`).join('') + '<th>Total</th>';
+            tableHeaders.innerHTML = parttimeStaff.map(s => `<th>${s.name}</th>`).join('') + '<th>Total</th>';
 
             const table = document.getElementById('hoursTable');
             const periods = [
-                { label: 'This Week', key: 'week' },
-                { label: 'This Month', key: 'month' },
-                { label: 'This Year', key: 'year' }
+                { label: 'Month (To Date)', key: 'monthToDate' },
+                { label: 'Month (Total)', key: 'monthTotal' },
+                { label: 'Year (Total)', key: 'yearTotal' }
             ];
 
             table.innerHTML = periods.map(period => {
                 let total = 0;
-                const staffCells = staffList.map(staff => {
+                const staffCells = parttimeStaff.map(staff => {
                     const key = staff.name.toLowerCase();
                     const hours = dashboardData.staffHours[key][period.key];
                     total += hours;
@@ -1241,9 +1237,9 @@
                 `;
             }).join('');
 
-            // Leave list - all staff
+            // Leave list - only fulltime staff
             const allLeave = [];
-            staffList.forEach(staff => {
+            fulltimeStaff.forEach(staff => {
                 const key = staff.name.toLowerCase();
                 dashboardData.leave[key].events.forEach(event => {
                     allLeave.push({...event, staff: staff.name});
@@ -1313,6 +1309,8 @@
         function checkPassword(tabName) {
             // Calendar is always accessible
             if (tabName === 'calendar') {
+                // Reset authentication when going back to calendar
+                isAuthenticated = false;
                 return true;
             }
             
