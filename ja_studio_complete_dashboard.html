@@ -990,28 +990,26 @@
             events.forEach(event => {
                 const title = (event.summary || '').toLowerCase();
                 
-                // Check if event is for this staff
+                // Check if event is for this staff member
                 if (!title.includes(staffName.toLowerCase())) return;
                 
                 // Skip leave/holiday events
                 if (title.includes('leave') || title.includes('holiday') || 
-                    title.includes('vacation') || title.includes('off')) return;
+                    title.includes('vacation') || title.includes('off') || 
+                    title.includes('back hong kong') || title.includes('back hk')) return;
 
                 const eventStart = new Date(event.start.dateTime || event.start.date);
                 if (eventStart < startDate || eventStart > endDate) return;
 
-                // Calculate hours from event duration
+                // ONLY count timed events (events with specific start/end times)
+                // Skip all-day events for parttime staff
                 if (event.start.dateTime && event.end.dateTime) {
                     const start = new Date(event.start.dateTime);
                     const end = new Date(event.end.dateTime);
                     const hours = (end - start) / (1000 * 60 * 60);
                     totalHours += hours;
-                } else {
-                    // All-day event marked as working
-                    if (title.includes('working') || title.includes('shift')) {
-                        totalHours += 6; // Standard workday
-                    }
                 }
+                // Intentionally skip all-day events - parttime staff should use timed shifts
             });
 
             return Math.round(totalHours * 10) / 10;
@@ -1044,26 +1042,55 @@
                     const eventStart = new Date(event.start.dateTime || event.start.date);
                     if (eventStart < startOfYear) return;
 
-                    // Calculate days
-                    let days = 1;
-                    if (event.end.date) {
+                    // Calculate days - only count Mon-Sat working days for fulltime staff
+                    let days = 0;
+                    if (event.start.date && event.end.date) {
+                        // All-day event (multi-day leave)
                         const start = new Date(event.start.date);
                         const end = new Date(event.end.date);
-                        days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+                        
+                        // Google Calendar end dates are exclusive, so subtract 1 day
+                        end.setDate(end.getDate() - 1);
+                        
+                        // Count only Mon-Sat working days
+                        let currentDate = new Date(start);
+                        while (currentDate <= end) {
+                            const dayOfWeek = currentDate.getDay();
+                            // Count Mon-Sat (1-6), skip Sunday (0)
+                            if (dayOfWeek !== 0) {
+                                days++;
+                            }
+                            currentDate.setDate(currentDate.getDate() + 1);
+                        }
                     } else if (event.start.dateTime && event.end.dateTime) {
+                        // Timed event (half-day or hours-based leave)
                         const start = new Date(event.start.dateTime);
                         const end = new Date(event.end.dateTime);
                         const hours = (end - start) / (1000 * 60 * 60);
-                        days = Math.ceil(hours / 6); // Convert hours to days
+                        
+                        // Only count if it's on a working day (Mon-Sat)
+                        const dayOfWeek = start.getDay();
+                        if (dayOfWeek !== 0) {
+                            // Count as 0.5 days if less than 4 hours, otherwise 1 day
+                            days = hours < 4 ? 0.5 : 1;
+                        }
+                    } else {
+                        // Single all-day event without explicit end
+                        const dayOfWeek = eventStart.getDay();
+                        if (dayOfWeek !== 0) {
+                            days = 1;
+                        }
                     }
 
-                    daysTaken += days;
-                    leaveEvents.push({
-                        title: event.summary,
-                        start: eventStart,
-                        days: days,
-                        isPast: eventStart < now
-                    });
+                    if (days > 0) {
+                        daysTaken += days;
+                        leaveEvents.push({
+                            title: event.summary,
+                            start: eventStart,
+                            days: days,
+                            isPast: eventStart < now
+                        });
+                    }
                 });
 
                 dashboardData.leave[key].taken = daysTaken;
